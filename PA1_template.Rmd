@@ -1,0 +1,100 @@
+---
+title: "PA1_template"
+author: "Siliangyu Cheng"
+date: "June 16, 2016"
+output: html_document
+---
+
+```{r}
+
+# Load the data 
+activity <- read.csv("C:/Users/apple/Desktop/activity.csv", as.is = TRUE)
+
+# Remove the NA values and store in a separate structure for future use
+act_na <- activity[complete.cases(activity), ]
+
+# Calculate the total number of steps taken per day
+steps_per_day <- aggregate(steps ~ date, act_na , sum)
+head(steps_per_day)
+
+# Create a histogram of no of steps per day
+hist(steps_per_day$steps, main = "Histogram of Daily Steps", xlab = "Steps per day")
+
+# mean & median
+mean(steps_per_day$steps)
+median(steps_per_day$steps)
+# Mean of total number of steps per day is 10766.19, median is 10765.
+
+# Calculate average steps per interval for all days 
+avg_steps_per_interval <- aggregate(steps ~ interval, act_na , mean)
+
+# Plot the time series with appropriate labels and heading
+plot(avg_steps_per_interval$interval, avg_steps_per_interval$steps, type='l', 
+     main="Average number of steps by Interval ", xlab="Time Interval", 
+     ylab="Average number of steps")
+
+# Identify the interval index which has the highest average steps
+max_steps_row <- which.max(avg_steps_per_interval$steps)
+avg_steps_per_interval [max_steps_row, ]
+# The interval 835 has the maximum average value of steps (206.1698).
+
+
+# Calculate the number of rows with missing values
+sum(is.na(activity))
+
+# Loop thru all the rows of activity
+for (i in 1:nrow(activity)) {
+    if(is.na(activity$steps[i])) {
+        val <- avg_steps_per_interval$steps[which(avg_steps_per_interval$interval == activity$interval[i])]
+        activity$steps[i] <- val 
+    }
+}
+
+# Aggregate the steps per day with the imputed values
+steps_per_day_impute <- aggregate(steps ~ date, activity, sum)
+
+# Draw a histogram of the value 
+hist(steps_per_day_impute$steps, main="Histogram of total number of steps per day (imputed)",xlab="steps per day")
+
+# Compute the mean and median of the imputed value
+# Calculate the mean and median of the total number of steps taken per day
+mean(steps_per_day_impute$steps)
+median(steps_per_day_impute$steps)
+mean(steps_per_day$steps)
+median(steps_per_day$steps)
+# mean and the median doesn't change 
+
+
+library(ggplot2)
+
+#creat a function
+week_day <- function(date_val) {
+    wd <- weekdays(as.Date(date_val, '%Y-%m-%d'))
+    if  (!(wd == 'Saturday' || wd == 'Sunday')) {
+        x <- 'Weekday'
+    } else {
+        x <- 'Weekend'
+    }
+    x
+}
+
+# Apply the week_day function and add a new column to activity dataset
+activity$day_type <- as.factor(sapply(activity$date, week_day))
+
+# Create the aggregated data frame by intervals and day_type
+steps_per_day_impute <- aggregate(steps ~ interval+day_type, activity, mean)
+
+# plot
+plt <- ggplot(steps_per_day_impute, aes(interval, steps)) +
+    geom_line(stat = "identity", aes(color = day_type)) +
+    facet_grid(day_type ~ ., scales="fixed", space="fixed") +
+    labs(x="Interval", y="Number of steps") +
+    theme_bw() +
+    ggtitle("Number of steps per interval by day type")
+
+print(plt)
+
+library(knitr)
+knit('C:/Users/apple/Desktop/PA1_template.Rmd')
+
+```
